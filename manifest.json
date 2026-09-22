@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.jfdnet.cn-indicator",
+  "name": "Omarchy CN Indicator",
+  "version": "1.0.0",
+  "author": "jfdnet",
+  "license": "MIT",
+  "description": "Fcitx5 Chinese input method indicator for the Omarchy top bar: shows EN/中 at a glance and toggles input on click. Works with any fcitx5 engine (Rime, Pinyin, ...). Does not manage fcitx5 or Rime config.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Widget.qml"
+  },
+  "barWidget": {
+    "displayName": "CN Indicator",
+    "description": "Fcitx5 EN/中 input method indicator with click-to-toggle",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}
