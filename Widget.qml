@@ -10,7 +10,6 @@ BarWidget {
 
   // fcitx5-remote: 0 closed, 1 latin/inactive, 2 active (Chinese)
   property int imeState: 1
-  property bool menuOpen: false
 
   readonly property string layoutLabel: {
     if (root.imeState === 2) return "中"
@@ -37,7 +36,7 @@ BarWidget {
   }
 
   function restartFcitx5() {
-    root.menuOpen = false
+    menuCard.open = false
     // 官方姿势(见 omarchy-fcitx5.service 注释): 裸 fcitx5(dbus 激活)占着总线时,
     // 直接 restart 会触发 Restart=always 循环(omarchy#15739 的竞态)。必须先停官方
     // unit、清掉游离实例, 再干净启动 unit(带 --disable notificationitem 与会话 env)。
@@ -80,12 +79,11 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.layoutLabel
-    fontSize: Style.font.caption
-    horizontalMargin: 6
     tooltipText: root.tooltip
+    useActiveColor: false
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) {
-        root.menuOpen = !root.menuOpen
+        menuCard.open = !menuCard.open
       } else {
         root.toggle()
       }
@@ -96,17 +94,13 @@ BarWidget {
   PopupCard {
     id: menuCard
     anchorItem: button
-    owner: button
     bar: root.bar
-    open: root.menuOpen
     contentWidth: menuCard.fittedContentWidth(Style.space(220))
     contentHeight: menuCard.fittedContentHeight(menuColumn.implicitHeight)
 
-    onOpenChanged: if (!open) root.menuOpen = false
-
     Column {
       id: menuColumn
-      anchors.fill: parent
+      width: parent.width
       spacing: Style.space(4)
 
       Rectangle {
