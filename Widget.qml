@@ -38,7 +38,13 @@ BarWidget {
 
   function restartFcitx5() {
     root.menuOpen = false
-    Quickshell.execDetached(["systemctl", "--user", "restart", "omarchy-fcitx5.service"])
+    // 官方姿势(见 omarchy-fcitx5.service 注释): 裸 fcitx5(dbus 激活)占着总线时,
+    // 直接 restart 会触发 Restart=always 循环(omarchy#15739 的竞态)。必须先停官方
+    // unit、清掉游离实例, 再干净启动 unit(带 --disable notificationitem 与会话 env)。
+    Quickshell.execDetached(["bash", "-c",
+      "systemctl --user stop omarchy-fcitx5.service; " +
+      "pkill -x fcitx5 2>/dev/null; sleep 1; " +
+      "systemctl --user start omarchy-fcitx5.service"])
     refreshSoon.restart()
   }
 
