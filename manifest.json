@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.jfdnet.cn-indicator",
   "name": "Omarchy CN Indicator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "jfdnet",
   "license": "MIT",
   "description": "Fcitx5 Chinese input method indicator for the Omarchy top bar: shows EN/中 at a glance and toggles input on click. Works with any fcitx5 engine (Rime, Pinyin, ...). Does not manage fcitx5 or Rime config.",
