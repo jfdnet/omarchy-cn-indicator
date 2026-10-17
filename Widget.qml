@@ -11,6 +11,11 @@ BarWidget {
   // fcitx5-remote: 0 closed, 1 latin/inactive, 2 active (Chinese)
   property int imeState: 1
 
+  // shibumi 等第三方栏在 bar.visualTokens 上发布样式令牌; 有则自绘 pill 原生融入,
+  // 无则走官方 WidgetButton(默认样式随宿主)。两路径共用同一交互逻辑。
+  readonly property var vt: (root.bar && root.bar.visualTokens) || null
+  readonly property var buttonAnchor: root.vt ? shibumiPill : button
+
   readonly property string layoutLabel: {
     if (root.imeState === 2) return "中"
     if (root.imeState === 0) return "—"
@@ -23,8 +28,12 @@ BarWidget {
     return "English · 点击切换 · 右键菜单"
   }
 
-  implicitWidth: button.implicitWidth
-  implicitHeight: button.implicitHeight
+  implicitWidth: root.vt
+    ? shibumiPill.implicitWidth
+    : button.implicitWidth
+  implicitHeight: root.vt
+    ? shibumiPill.implicitHeight
+    : button.implicitHeight
 
   function refresh() {
     if (!queryProc.running) queryProc.running = true
@@ -33,6 +42,14 @@ BarWidget {
   function toggle() {
     Quickshell.execDetached(["fcitx5-remote", "-t"])
     refreshSoon.restart()
+  }
+
+  function handlePress(buttonCode) {
+    if (buttonCode === Qt.RightButton) {
+      menuCard.open = !menuCard.open
+    } else {
+      root.toggle()
+    }
   }
 
   function restartFcitx5() {
@@ -74,29 +91,72 @@ BarWidget {
     onTriggered: root.refresh()
   }
 
+  // ── 官方栏路径 ──
   WidgetButton {
     id: button
-    anchors.fill: parent
+    visible: !root.vt
+    anchors.centerIn: parent
     bar: root.bar
     text: root.layoutLabel
     tooltipText: root.tooltip
     useActiveColor: false
-    onPressed: function(buttonCode) {
-      if (buttonCode === Qt.RightButton) {
-        menuCard.open = !menuCard.open
-      } else {
-        root.toggle()
-      }
+    onPressed: function(buttonCode) { root.handlePress(buttonCode) }
+  }
+
+  // ── shibumi 栏路径: 按令牌自绘 pill ──
+  Rectangle {
+    id: shibumiPill
+    visible: !!root.vt
+    anchors.centerIn: parent
+    implicitWidth: label.implicitWidth + root.vt.pillPaddingX * 2
+    implicitHeight: root.vt.pillHeight
+    width: implicitWidth
+    height: implicitHeight
+    radius: root.vt.pillRadius
+    color: pillMouse.containsMouse
+      ? (root.imeState === 2 ? root.vt.fillActive : root.vt.fillHover)
+      : root.vt.pill
+    border.width: root.vt.pillBorderWidth
+    border.color: root.vt.pillBorder
+
+    Text {
+      id: label
+      anchors.centerIn: parent
+      text: root.layoutLabel
+      color: root.imeState === 2 ? root.vt.ink : root.vt.sumiHi
+      font.family: root.vt.fontFamily
+      font.pixelSize: root.vt.captionSize
+      renderType: Text.NativeRendering
+    }
+
+    MouseArea {
+      id: pillMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+      onPressed: function(mouse) { root.handlePress(mouse.button) }
     }
   }
 
-  // 右键菜单: 仿 bar/widgets/Tray.qml 的 PopupCard 模式
+  // ── 右键菜单(两路径共用) ──
   PopupCard {
     id: menuCard
-    anchorItem: button
+    anchorItem: root.buttonAnchor
     bar: root.bar
     contentWidth: menuCard.fittedContentWidth(Style.space(220))
     contentHeight: menuCard.fittedContentHeight(menuColumn.implicitHeight)
+
+    // shibumi 皮: 负外扩覆盖官方卡片的底色/圆角/边框(padding 环 + 边框环)
+    Rectangle {
+      visible: !!root.vt
+      anchors.centerIn: parent
+      width: parent.width + (menuCard.padding + 3) * 2
+      height: parent.height + (menuCard.padding + 3) * 2
+      radius: root.vt.panelRadius
+      color: root.vt.panelBackground
+      border.width: root.vt.panelBorderWidth
+      border.color: root.vt.panelBorder
+    }
 
     Column {
       id: menuColumn
@@ -107,17 +167,20 @@ BarWidget {
         id: restartRow
         width: parent.width
         height: Style.spacing.controlHeight
-        radius: Style.space(6)
-        color: restartHover.hovered ? Style.hoverFillFor(ShellColor.popups.text, ShellColor.popups.text) : "transparent"
+        radius: root.vt ? root.vt.tileRadius : Style.space(6)
+        color: restartHover.hovered
+          ? (root.vt ? root.vt.fillHover
+             : Style.hoverFillFor(ShellColor.popups.text, ShellColor.popups.text))
+          : "transparent"
 
         Text {
           anchors.left: parent.left
           anchors.leftMargin: Style.space(10)
           anchors.verticalCenter: parent.verticalCenter
           text: "重启 Fcitx5"
-          color: ShellColor.popups.text
-          font.family: Style.font.family
-          font.pixelSize: Style.font.body
+          color: root.vt ? root.vt.ink : ShellColor.popups.text
+          font.family: root.vt ? root.vt.fontFamily : Style.font.family
+          font.pixelSize: root.vt ? root.vt.labelSize : Style.font.body
           renderType: Text.NativeRendering
         }
 
